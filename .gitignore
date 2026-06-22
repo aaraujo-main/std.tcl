@@ -1,0 +1,5 @@
+tmp/
+
+# Common local build outputs
+build/
+cmake-build-*/
