@@ -48,15 +48,15 @@ protected:
 };
 
 TEST_F(StdConditionalVariableTest, NewAndAddressString) {
-    EvalOk("set cv [::std::conditional_variable::new]");
+    EvalOk("set cv [::std::conditional_variable::new.shared]");
     EvalOk("expr {[string is wideinteger -strict $cv]}");
     ExpectBoolean(true, "conditional variable should stringify as integer address");
 }
 
 TEST_F(StdConditionalVariableTest, WaitForTimeoutAndNotify) {
-    EvalOk("set m [::std::mutex::new]");
+    EvalOk("set m [::std::mutex::new.shared]");
     EvalOk("set g [::std::mutex::guard::new $m]");
-    EvalOk("set cv [::std::conditional_variable::new]");
+    EvalOk("set cv [::std::conditional_variable::new.shared]");
 
     EvalOk("expr {[::std::conditional_variable::wait_for $cv $g 1] == 0}");
     ExpectBoolean(true, "wait_for should time out without notifications");
@@ -67,17 +67,17 @@ TEST_F(StdConditionalVariableTest, WaitForTimeoutAndNotify) {
 
 TEST_F(StdConditionalVariableTest, TypoNamespaceAliasIsAvailable) {
     EvalOk("set cv [::std::coditional_variable::new]");
-    EvalOk("set m [::std::mutex::new]");
+    EvalOk("set m [::std::mutex::new.shared]");
     EvalOk("set g [::std::mutex::guard::new $m]");
     EvalOk("expr {[::std::coditional_variable::wait_for $cv $g 1] == 0}");
     ExpectBoolean(true, "coditional_variable alias should resolve to same implementation");
 }
 
 TEST_F(StdConditionalVariableTest, GuardMustOwnLock) {
-    EvalOk("set m [::std::mutex::new]");
+    EvalOk("set m [::std::mutex::new.shared]");
     EvalOk("set g [::std::mutex::guard::new $m]");
     EvalOk("::std::mutex::guard::release $g");
-    EvalOk("set cv [::std::conditional_variable::new]");
+    EvalOk("set cv [::std::conditional_variable::new.shared]");
 
     EvalError("::std::conditional_variable::wait_for $cv $g 1");
 }

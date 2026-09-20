@@ -124,11 +124,7 @@ extern "C" int Stdcond_Init(Tcl_Interp* interp) {
     Tcl_CreateNamespace(interp, "::std::conditional_variable", nullptr, nullptr);
     Tcl_CreateNamespace(interp, "::std::coditional_variable", nullptr, nullptr);
 
-    Tcl_CreateObjCommand(interp,
-                         "::std::conditional_variable::new",
-                         ::tclxx::cmd::create<stdthread::model::ConditionalVariable>,
-                         nullptr,
-                         nullptr);
+    TCLXX_CMD_NEW0_SHARED(interp, "::std::conditional_variable::new.shared", stdthread::model::ConditionalVariable);
     TCLXX_CMD_GETTER_METHOD(interp, "::std::conditional_variable::wait", &stdthread::model::ConditionalVariable::wait);
     TCLXX_CMD_GETTER_METHOD(interp, "::std::conditional_variable::wait_for", &stdthread::model::ConditionalVariable::wait_for);
     TCLXX_CMD_GETTER_METHOD(interp, "::std::conditional_variable::notify_one", &stdthread::model::ConditionalVariable::notify_one);

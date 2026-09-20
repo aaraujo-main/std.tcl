@@ -59,12 +59,12 @@ package require std::thread
 
 ## `::std::mutex`
 
-### `::std::mutex::new`
-Creates a new `std::mutex` handle.
+### `::std::mutex::new.shared.shared`
+Creates a new `std::mutex` handle, which is shareable across different threads.
 
 Example:
 ```tcl
-set m [::std::mutex::new]
+set m [::std::mutex::new.shared]
 ```
 
 ### `::std::mutex::lock mutex`
@@ -86,20 +86,20 @@ Releases the guard lock early; returns Tcl boolean indicating whether a lock was
 
 ## `::std::scoped_lock`
 
-### `::std::scoped_lock::new mutex1 ?mutex2 ...?`
+### `::std::scoped_lock::new.shared(args) mutex1 ?mutex2 ...?`
 Creates a scoped lock object that locks all listed mutexes and unlocks on object destruction.
 
 Example:
 ```tcl
-set a [::std::mutex::new]
-set b [::std::mutex::new]
-set sl [::std::scoped_lock::new $a $b]
+set a [::std::mutex::new.shared]
+set b [::std::mutex::new.shared]
+set sl [::std::scoped_lock::new.shared(args) $a $b]
 unset sl
 ```
 
 ## `::std::conditional_variable` and `::std::coditional_variable`
 
-### `::std::conditional_variable::new`
+### `::std::conditional_variable::new.shared`
 Creates a new condition variable handle.
 
 ### `::std::conditional_variable::wait condVar guard`

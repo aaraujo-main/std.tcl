@@ -48,13 +48,13 @@ protected:
 };
 
 TEST_F(StdMutexTest, NewAndAddressString) {
-    EvalOk("set m [::std::mutex::new]");
+    EvalOk("set m [::std::mutex::new.shared]");
     EvalOk("expr {[string is wideinteger -strict $m]}");
     ExpectBooleanTrue("mutex handle should stringify as integer address");
 }
 
 TEST_F(StdMutexTest, LockTryUnlockFlow) {
-    EvalOk("set m [::std::mutex::new]");
+    EvalOk("set m [::std::mutex::new.shared]");
     EvalOk("::std::mutex::lock $m");
     EvalOk("expr {[::std::mutex::try_lock $m] == 0}");
     ExpectBooleanTrue("try_lock should fail when already locked by this thread");
@@ -66,14 +66,14 @@ TEST_F(StdMutexTest, LockTryUnlockFlow) {
 }
 
 TEST_F(StdMutexTest, GuardAndScopedLock) {
-    EvalOk("set m [::std::mutex::new]");
+    EvalOk("set m [::std::mutex::new.shared]");
     EvalOk("set g [::std::mutex::guard::new $m]");
     EvalOk("expr {[::std::mutex::guard::release $g] == 1}");
     ExpectBooleanTrue("guard release should unlock mutex");
 
-    EvalOk("set a [::std::mutex::new]");
-    EvalOk("set b [::std::mutex::new]");
-    EvalOk("set sl [::std::scoped_lock::new $a $b]");
+    EvalOk("set a [::std::mutex::new.shared]");
+    EvalOk("set b [::std::mutex::new.shared]");
+    EvalOk("set sl [::std::scoped_lock::new.shared(args) $a $b]");
     EvalOk("unset sl");
 
     EvalOk("expr {[::std::mutex::try_lock $a] == 1}");
@@ -86,13 +86,13 @@ TEST_F(StdMutexTest, GuardAndScopedLock) {
 }
 
 TEST_F(StdMutexTest, WrongArgCountsFail) {
-    EvalError("::std::mutex::new x");
+    EvalError("::std::mutex::new.shared x");
     EvalError("::std::mutex::lock");
     EvalError("::std::mutex::try_lock");
     EvalError("::std::mutex::unlock");
     EvalError("::std::mutex::guard::new");
     EvalError("::std::mutex::guard::release");
-    EvalError("::std::scoped_lock::new");
+    EvalError("::std::scoped_lock::new.shared(args)");
 }
 
 } // namespace
