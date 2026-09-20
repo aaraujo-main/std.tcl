@@ -19,45 +19,44 @@ std::string to_tcl_string(Tcl_Obj* obj) {
     return out;
 }
 
+using Vector = stdcontainers::TclVector;
+
+int vector_new_args_cmd(ClientData, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) {
+    if (objc < 2) {
+        Tcl_WrongNumArgs(interp, 1, objv, "?arg1 arg2 ...?");
+        return TCL_ERROR;
+    }
+    auto value = std::make_unique<Vector>();
+    try {
+        value->reserve(static_cast<std::size_t>(objc - 1));
+        for (int i = 1; i < objc; ++i) {
+            value->push_back(objv[i]);
+        }
+        Tcl_SetObjResult(interp, tclxx::obj_cast::from_owned(value.release()));
+        return TCL_OK;
+    } catch (const std::exception& e) {
+        value->clear();
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(e.what(), -1));
+        return TCL_ERROR;
+    }
+}
+
 int register_vector_commands(Tcl_Interp* interp) {
     Tcl_CreateNamespace(interp, "::std::vector", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector::new", stdcontainers::VectorContainer);
-    TCLXX_CMD_NEWARGS(interp, "::std::vector::new(args)", stdcontainers::VectorContainer);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector::size", &stdcontainers::VectorContainer::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector::empty", &stdcontainers::VectorContainer::empty);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector::set", &stdcontainers::VectorContainer::set_at);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector::at",
-        stdcontainers::cmd_helpers::getter_obj_int_cmd<
-            stdcontainers::VectorContainer,
-            &stdcontainers::VectorContainer::at>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector::list",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::VectorContainer,
-            &stdcontainers::VectorContainer::to_list>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector::reserve", &stdcontainers::VectorContainer::reserve);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector::clear", &stdcontainers::VectorContainer::clear);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<
-            stdcontainers::VectorContainer,
-            &stdcontainers::VectorContainer::pop_back_take>,
-        nullptr,
-        nullptr);
+    TCLXX_CMD_NEW0(interp, "::std::vector::new", Vector);
+    Tcl_CreateObjCommand(interp, "::std::vector::new(args)", vector_new_args_cmd, nullptr, nullptr);
+    TCLXX_CMD_GETTER(interp, "::std::vector::size", &stdcontainers::vector_size);
+    TCLXX_CMD_GETTER(interp, "::std::vector::empty", &stdcontainers::vector_empty);
+    TCLXX_CMD_SETTER(interp, "::std::vector::set", &stdcontainers::vector_set);
+    TCLXX_CMD_GETTER(interp, "::std::vector::at", &stdcontainers::vector_at);
+    TCLXX_CMD_GETTER(interp, "::std::vector::list", &stdcontainers::vector_to_list);
+    TCLXX_CMD_SETTER(interp, "::std::vector::reserve", &stdcontainers::vector_reserve);
+    TCLXX_CMD_SETTER(interp, "::std::vector::clear", &stdcontainers::vector_clear);
+    TCLXX_CMD_SETTER(interp, "::std::vector::pop", &stdcontainers::vector_pop);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<
-            stdcontainers::VectorContainer,
-            &stdcontainers::VectorContainer::push_one>,
+        stdcontainers::cmd_helpers::variadic_push_cmd<Vector, &stdcontainers::vector_push>,
         nullptr,
         nullptr);
 
@@ -216,15 +215,26 @@ int register_vector_shared_commands(Tcl_Interp* interp) {
 namespace tclxx {
 
 template <>
-std::string ObjType<stdcontainers::VectorContainer>::ToString(const stdcontainers::VectorContainer& v) {
-    return to_tcl_string(v.to_list());
+std::string ObjType<stdcontainers::TclVector>::ToString(const stdcontainers::TclVector& v) {
+    return to_tcl_string(stdcontainers::vector_to_list(&v));
 }
 
 template <>
-void ObjType<stdcontainers::VectorContainer>::Startup(stdcontainers::VectorContainer*) noexcept {}
+void ObjType<stdcontainers::TclVector>::Startup(stdcontainers::TclVector* value) noexcept {
+    if (!value) {
+        return;
+    }
+    for (Tcl_Obj* item : *value) {
+        stdcontainers::detail::retain(item);
+    }
+}
 
 template <>
-void ObjType<stdcontainers::VectorContainer>::Cleanup(stdcontainers::VectorContainer*) noexcept {}
+void ObjType<stdcontainers::TclVector>::Cleanup(stdcontainers::TclVector* value) noexcept {
+    if (value) {
+        stdcontainers::vector_clear(value);
+    }
+}
 
 // VectorContainerHeap<int> toString
 template <>

@@ -11,109 +11,68 @@
 
 namespace stdcontainers {
 
-class VectorContainer {
-public:
-    using storage_type = std::vector<Tcl_Obj*, TclAlloc<Tcl_Obj*>>;
+using TclVector = std::vector<Tcl_Obj*, TclAlloc<Tcl_Obj*>>;
 
-    VectorContainer() = default;
+inline int vector_size(const TclVector* value) {
+    return static_cast<int>(value->size());
+}
 
-    VectorContainer(ClientData, Tcl_Interp*, int objc, Tcl_Obj* const objv[]) {
-        data_.reserve(static_cast<std::size_t>(objc - 1));
-        for (int i = 1; i < objc; ++i) {
-            data_.push_back(detail::retain(objv[i]));
-        }
+inline bool vector_empty(const TclVector* value) {
+    return value->empty();
+}
+
+inline void vector_reserve(TclVector* value, int capacity) {
+    if (capacity < 0) {
+        throw std::runtime_error("vector reserve requires non-negative capacity");
     }
+    value->reserve(static_cast<std::size_t>(capacity));
+}
 
-    VectorContainer(const VectorContainer& other) {
-        data_.reserve(other.data_.size());
-        for (Tcl_Obj* item : other.data_) {
-            data_.push_back(detail::retain(item));
-        }
+inline void vector_push(TclVector* value, Tcl_Obj* item) {
+    value->push_back(detail::retain(item));
+}
+
+inline Tcl_Obj* vector_at(const TclVector* value, int index) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("vector index out of range");
     }
+    return (*value)[static_cast<std::size_t>(index)];
+}
 
-    VectorContainer& operator=(const VectorContainer& other) {
-        if (this == &other) {
-            return *this;
-        }
-        clear();
-        data_.reserve(other.data_.size());
-        for (Tcl_Obj* item : other.data_) {
-            data_.push_back(detail::retain(item));
-        }
-        return *this;
+inline void vector_set(TclVector* value, int index, Tcl_Obj* item) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("vector index out of range");
     }
+    const std::size_t position = static_cast<std::size_t>(index);
+    Tcl_Obj* replacement = detail::retain(item);
+    Tcl_Obj* old = (*value)[position];
+    (*value)[position] = replacement;
+    detail::release(old);
+}
 
-    VectorContainer(VectorContainer&&) noexcept = default;
-    VectorContainer& operator=(VectorContainer&&) noexcept = default;
-
-    ~VectorContainer() {
-        clear();
+inline Tcl_Obj* vector_pop(TclVector* value) {
+    if (value->empty()) {
+        throw std::runtime_error("vector is empty");
     }
+    Tcl_Obj* item = value->back();
+    value->pop_back();
+    return item;
+}
 
-    int size() const {
-        return static_cast<int>(data_.size());
+inline void vector_clear(TclVector* value) {
+    for (Tcl_Obj* item : *value) {
+        detail::release(item);
     }
+    value->clear();
+}
 
-    bool empty() const {
-        return data_.empty();
+inline Tcl_Obj* vector_to_list(const TclVector* value) {
+    Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
+    for (Tcl_Obj* item : *value) {
+        Tcl_ListObjAppendElement(nullptr, out, item);
     }
-
-    void reserve(int capacity) {
-        if (capacity < 0) {
-            throw std::runtime_error("vector reserve requires non-negative capacity");
-        }
-        data_.reserve(static_cast<std::size_t>(capacity));
-    }
-
-    void push_one(Tcl_Obj* value) {
-        data_.push_back(detail::retain(value));
-    }
-
-    Tcl_Obj* at(int index) const {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("vector index out of range");
-        }
-        return data_[static_cast<std::size_t>(index)];
-    }
-
-    void set_at(int index, Tcl_Obj* value) {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("vector index out of range");
-        }
-        const std::size_t pos = static_cast<std::size_t>(index);
-        Tcl_Obj* replacement = detail::retain(value);
-        Tcl_Obj* old = data_[pos];
-        data_[pos] = replacement;
-        detail::release(old);
-    }
-
-    Tcl_Obj* pop_back_take() {
-        if (data_.empty()) {
-            throw std::runtime_error("vector is empty");
-        }
-        Tcl_Obj* value = data_.back();
-        data_.pop_back();
-        return value;
-    }
-
-    void clear() {
-        for (Tcl_Obj* item : data_) {
-            detail::release(item);
-        }
-        data_.clear();
-    }
-
-    Tcl_Obj* to_list() const {
-        Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
-        for (Tcl_Obj* item : data_) {
-            Tcl_ListObjAppendElement(nullptr, out, item);
-        }
-        return out;
-    }
-
-private:
-    storage_type data_;
-};
+    return out;
+}
 
 /// VectorContainerHeap<T> — same interface as VectorContainer but stores
 /// plain value types (int, double, bool, …) using standard heap allocation
