@@ -63,102 +63,102 @@ int register_vector_commands(Tcl_Interp* interp) {
     return TCL_OK;
 }
 
-// VectorContainerHeap registrations for int, double, string
-int register_vector_heap_int_commands(Tcl_Interp* interp) {
-    using HeapIntVec = stdcontainers::VectorContainerHeap<int>;
+// Plain std::vector registrations for int, double, string
+int register_value_vector_int_commands(Tcl_Interp* interp) {
+    using IntVec = std::vector<int>;
 
     Tcl_CreateNamespace(interp, "::std::vector<int>", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector<int>::new", HeapIntVec);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<int>::new.shared", HeapIntVec);
-    TCLXX_CMD_NEW_MAKE_SHARED(interp, "::std::vector<int>::make_shared", HeapIntVec);
-    TCLXX_CMD_NEW_FROM_SHARED(interp, "::std::vector<int>::from_shared", HeapIntVec);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<int>::size", &HeapIntVec::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<int>::empty", &HeapIntVec::empty);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<int>::set", &HeapIntVec::set_at);
+    TCLXX_CMD_NEW0(interp, "::std::vector<int>::new", IntVec);
+    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<int>::new.shared", IntVec);
+    TCLXX_CMD_NEW_MAKE_SHARED(interp, "::std::vector<int>::make_shared", IntVec);
+    TCLXX_CMD_NEW_FROM_SHARED(interp, "::std::vector<int>::from_shared", IntVec);
+    TCLXX_CMD_GETTER(interp, "::std::vector<int>::size", &stdcontainers::value_vector_size<int>);
+    TCLXX_CMD_GETTER(interp, "::std::vector<int>::empty", &stdcontainers::value_vector_empty<int>);
+    TCLXX_CMD_SETTER(interp, "::std::vector<int>::set", &stdcontainers::value_vector_set<int>);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<int>::at",
-        stdcontainers::cmd_helpers::getter_obj_int_cmd<HeapIntVec, &HeapIntVec::at>,
+        tclxx::cmd::getter<&stdcontainers::value_vector_at<int>>,
         nullptr,
         nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<int>::reserve", &HeapIntVec::reserve);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<int>::clear", &HeapIntVec::clear);
+    TCLXX_CMD_SETTER(interp, "::std::vector<int>::reserve", &stdcontainers::value_vector_reserve<int>);
+    TCLXX_CMD_SETTER(interp, "::std::vector<int>::clear", &stdcontainers::value_vector_clear<int>);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<int>::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<HeapIntVec, &HeapIntVec::pop_back_take>,
+        tclxx::cmd::setter<&stdcontainers::value_vector_pop<int>>,
         nullptr,
         nullptr);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<int>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<HeapIntVec, &HeapIntVec::push>,
+        stdcontainers::cmd_helpers::variadic_push_cmd<IntVec, &stdcontainers::value_vector_push<int>>,
         nullptr,
         nullptr);
 
     return TCL_OK;
 }
 
-int register_vector_heap_double_commands(Tcl_Interp* interp) {
-    using HeapDoubleVec = stdcontainers::VectorContainerHeap<double>;
+int register_value_vector_double_commands(Tcl_Interp* interp) {
+    using DoubleVec = std::vector<double>;
 
     Tcl_CreateNamespace(interp, "::std::vector<double>", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector<double>::new", HeapDoubleVec);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<double>::new.shared", HeapDoubleVec);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<double>::size", &HeapDoubleVec::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<double>::empty", &HeapDoubleVec::empty);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<double>::set", &HeapDoubleVec::set_at);
+    TCLXX_CMD_NEW0(interp, "::std::vector<double>::new", DoubleVec);
+    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<double>::new.shared", DoubleVec);
+    TCLXX_CMD_GETTER(interp, "::std::vector<double>::size", &stdcontainers::value_vector_size<double>);
+    TCLXX_CMD_GETTER(interp, "::std::vector<double>::empty", &stdcontainers::value_vector_empty<double>);
+    TCLXX_CMD_SETTER(interp, "::std::vector<double>::set", &stdcontainers::value_vector_set<double>);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<double>::at",
-        stdcontainers::cmd_helpers::getter_obj_int_cmd<HeapDoubleVec, &HeapDoubleVec::at>,
+        tclxx::cmd::getter<&stdcontainers::value_vector_at<double>>,
         nullptr,
         nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<double>::reserve", &HeapDoubleVec::reserve);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<double>::clear", &HeapDoubleVec::clear);
+    TCLXX_CMD_SETTER(interp, "::std::vector<double>::reserve", &stdcontainers::value_vector_reserve<double>);
+    TCLXX_CMD_SETTER(interp, "::std::vector<double>::clear", &stdcontainers::value_vector_clear<double>);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<double>::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<HeapDoubleVec, &HeapDoubleVec::pop_back_take>,
+        tclxx::cmd::setter<&stdcontainers::value_vector_pop<double>>,
         nullptr,
         nullptr);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<double>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<HeapDoubleVec, &HeapDoubleVec::push>,
+        stdcontainers::cmd_helpers::variadic_push_cmd<DoubleVec, &stdcontainers::value_vector_push<double>>,
         nullptr,
         nullptr);
 
     return TCL_OK;
 }
 
-int register_vector_heap_string_commands(Tcl_Interp* interp) {
-    using HeapStringVec = stdcontainers::VectorContainerHeap<std::string>;
+int register_value_vector_string_commands(Tcl_Interp* interp) {
+    using StringVec = std::vector<std::string>;
 
     Tcl_CreateNamespace(interp, "::std::vector<string>", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector<string>::new", HeapStringVec);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<string>::new.shared", HeapStringVec);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<string>::size", &HeapStringVec::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<string>::empty", &HeapStringVec::empty);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<string>::set", &HeapStringVec::set_at);
+    TCLXX_CMD_NEW0(interp, "::std::vector<string>::new", StringVec);
+    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<string>::new.shared", StringVec);
+    TCLXX_CMD_GETTER(interp, "::std::vector<string>::size", &stdcontainers::value_vector_size<std::string>);
+    TCLXX_CMD_GETTER(interp, "::std::vector<string>::empty", &stdcontainers::value_vector_empty<std::string>);
+    TCLXX_CMD_SETTER(interp, "::std::vector<string>::set", &stdcontainers::value_vector_set<std::string>);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<string>::at",
-        stdcontainers::cmd_helpers::getter_obj_int_cmd<HeapStringVec, &HeapStringVec::at>,
+        tclxx::cmd::getter<&stdcontainers::value_vector_at<std::string>>,
         nullptr,
         nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<string>::reserve", &HeapStringVec::reserve);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<string>::clear", &HeapStringVec::clear);
+    TCLXX_CMD_SETTER(interp, "::std::vector<string>::reserve", &stdcontainers::value_vector_reserve<std::string>);
+    TCLXX_CMD_SETTER(interp, "::std::vector<string>::clear", &stdcontainers::value_vector_clear<std::string>);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<string>::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<HeapStringVec, &HeapStringVec::pop_back_take>,
+        tclxx::cmd::setter<&stdcontainers::value_vector_pop<std::string>>,
         nullptr,
         nullptr);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<string>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<HeapStringVec, &HeapStringVec::push>,
+        stdcontainers::cmd_helpers::variadic_push_cmd<StringVec, &stdcontainers::value_vector_push<std::string>>,
         nullptr,
         nullptr);
 
@@ -236,47 +236,35 @@ void ObjType<stdcontainers::TclVector>::Cleanup(stdcontainers::TclVector* value)
     }
 }
 
-// VectorContainerHeap<int> toString
+// std::vector<int> toString
 template <>
-std::string ObjType<stdcontainers::VectorContainerHeap<int>>::ToString(const stdcontainers::VectorContainerHeap<int>& v) {
+std::string ObjType<std::vector<int>>::ToString(const std::vector<int>& v) {
     std::ostringstream oss;
     for (int i = 0; i < v.size(); ++i) {
         if (i > 0) oss << " ";
-        oss << v.at(i);
+        oss << v[static_cast<std::size_t>(i)];
     }
     return oss.str();
 }
 
+// std::vector<double> toString
 template <>
-void ObjType<stdcontainers::VectorContainerHeap<int>>::Startup(stdcontainers::VectorContainerHeap<int>*) noexcept {}
-
-template <>
-void ObjType<stdcontainers::VectorContainerHeap<int>>::Cleanup(stdcontainers::VectorContainerHeap<int>*) noexcept {}
-
-// VectorContainerHeap<double> toString
-template <>
-std::string ObjType<stdcontainers::VectorContainerHeap<double>>::ToString(const stdcontainers::VectorContainerHeap<double>& v) {
+std::string ObjType<std::vector<double>>::ToString(const std::vector<double>& v) {
     std::ostringstream oss;
     for (int i = 0; i < v.size(); ++i) {
         if (i > 0) oss << " ";
-        oss << v.at(i);
+        oss << v[static_cast<std::size_t>(i)];
     }
     return oss.str();
 }
 
+// std::vector<std::string> toString
 template <>
-void ObjType<stdcontainers::VectorContainerHeap<double>>::Startup(stdcontainers::VectorContainerHeap<double>*) noexcept {}
-
-template <>
-void ObjType<stdcontainers::VectorContainerHeap<double>>::Cleanup(stdcontainers::VectorContainerHeap<double>*) noexcept {}
-
-// VectorContainerHeap<std::string> toString
-template <>
-std::string ObjType<stdcontainers::VectorContainerHeap<std::string>>::ToString(const stdcontainers::VectorContainerHeap<std::string>& v) {
+std::string ObjType<std::vector<std::string>>::ToString(const std::vector<std::string>& v) {
     std::ostringstream oss;
     for (int i = 0; i < v.size(); ++i) {
         if (i > 0) oss << " ";
-        std::string str = v.at(i);
+        const std::string& str = v[static_cast<std::size_t>(i)];
         bool has_space = (str.find(' ') != std::string::npos);
         if (has_space) {
             oss << '{' << str << '}';
@@ -286,12 +274,6 @@ std::string ObjType<stdcontainers::VectorContainerHeap<std::string>>::ToString(c
     }
     return oss.str();
 }
-
-template <>
-void ObjType<stdcontainers::VectorContainerHeap<std::string>>::Startup(stdcontainers::VectorContainerHeap<std::string>*) noexcept {}
-
-template <>
-void ObjType<stdcontainers::VectorContainerHeap<std::string>>::Cleanup(stdcontainers::VectorContainerHeap<std::string>*) noexcept {}
 
 // VectorContainerShared toString
 template <>
@@ -322,15 +304,15 @@ int InitVectorPackage(Tcl_Interp* interp) {
         return TCL_ERROR;
     }
 
-    if (register_vector_heap_int_commands(interp) != TCL_OK) {
+    if (register_value_vector_int_commands(interp) != TCL_OK) {
         return TCL_ERROR;
     }
 
-    if (register_vector_heap_double_commands(interp) != TCL_OK) {
+    if (register_value_vector_double_commands(interp) != TCL_OK) {
         return TCL_ERROR;
     }
 
-    if (register_vector_heap_string_commands(interp) != TCL_OK) {
+    if (register_value_vector_string_commands(interp) != TCL_OK) {
         return TCL_ERROR;
     }
 

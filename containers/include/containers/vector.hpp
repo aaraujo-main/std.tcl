@@ -74,73 +74,59 @@ inline Tcl_Obj* vector_to_list(const TclVector* value) {
     return out;
 }
 
-/// VectorContainerHeap<T> — same interface as VectorContainer but stores
-/// plain value types (int, double, bool, …) using standard heap allocation
-/// (no TclAlloc, no retain/release).
 template <typename T>
-class VectorContainerHeap {
-public:
-    using storage_type = std::vector<T>;
+int value_vector_size(const std::vector<T>* value) {
+    return static_cast<int>(value->size());
+}
 
-    VectorContainerHeap() = default;
+template <typename T>
+bool value_vector_empty(const std::vector<T>* value) {
+    return value->empty();
+}
 
-    VectorContainerHeap(const VectorContainerHeap& other) = default;
-    VectorContainerHeap& operator=(const VectorContainerHeap& other) = default;
-
-    VectorContainerHeap(VectorContainerHeap&&) noexcept = default;
-    VectorContainerHeap& operator=(VectorContainerHeap&&) noexcept = default;
-
-    ~VectorContainerHeap() = default;
-
-    int size() const {
-        return static_cast<int>(data_.size());
+template <typename T>
+void value_vector_reserve(std::vector<T>* value, int capacity) {
+    if (capacity < 0) {
+        throw std::runtime_error("vector reserve requires non-negative capacity");
     }
+    value->reserve(static_cast<std::size_t>(capacity));
+}
 
-    bool empty() const {
-        return data_.empty();
+template <typename T>
+void value_vector_push(std::vector<T>* value, T item) {
+    value->push_back(std::move(item));
+}
+
+template <typename T>
+T value_vector_at(const std::vector<T>* value, int index) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("vector index out of range");
     }
+    return (*value)[static_cast<std::size_t>(index)];
+}
 
-    void reserve(int capacity) {
-        if (capacity < 0) {
-            throw std::runtime_error("vector reserve requires non-negative capacity");
-        }
-        data_.reserve(static_cast<std::size_t>(capacity));
+template <typename T>
+void value_vector_set(std::vector<T>* value, int index, T item) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("vector index out of range");
     }
+    (*value)[static_cast<std::size_t>(index)] = std::move(item);
+}
 
-    void push(const T& value) {
-        data_.push_back(value);
+template <typename T>
+T value_vector_pop(std::vector<T>* value) {
+    if (value->empty()) {
+        throw std::runtime_error("vector is empty");
     }
+    T item = std::move(value->back());
+    value->pop_back();
+    return item;
+}
 
-    T at(int index) const {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("vector index out of range");
-        }
-        return data_[static_cast<std::size_t>(index)];
-    }
-
-    void set_at(int index, T value) {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("vector index out of range");
-        }
-        data_[static_cast<std::size_t>(index)] = value;
-    }
-
-    T pop_back_take() {
-        if (data_.empty()) {
-            throw std::runtime_error("vector is empty");
-        }
-        T value = data_.back();
-        data_.pop_back();
-        return value;
-    }
-
-    void clear() {
-        data_.clear();
-    }
-
-private:
-    storage_type data_;
-};
+template <typename T>
+void value_vector_clear(std::vector<T>* value) {
+    value->clear();
+}
 
 /// VectorContainerShared — stores Tcl_Obj* using internal representation duplication.
 /// Each stored value has only internal rep (no string rep shared).
