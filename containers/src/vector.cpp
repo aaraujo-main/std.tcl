@@ -8,6 +8,16 @@
 #include "init_common.hpp"
 #include "tclxx.hpp"
 
+namespace tclxx {
+
+template <>
+void ObjType<stdcontainers::SharedVector>::FreeInternalRep(Tcl_Obj* obj) noexcept;
+
+template <>
+void ObjType<stdcontainers::SharedVector>::DupInternalRep(Tcl_Obj* src, Tcl_Obj* dup) noexcept;
+
+} // namespace tclxx
+
 namespace {
 
 std::string to_tcl_string(Tcl_Obj* obj) {
@@ -155,44 +165,31 @@ int register_value_vector_string_commands(Tcl_Interp* interp) {
 }
 
 int register_vector_shared_commands(Tcl_Interp* interp) {
-    using SharedVec = stdcontainers::VectorContainerShared;
+    using SharedVec = stdcontainers::SharedVector;
 
     Tcl_CreateNamespace(interp, "::std::vector<shared>", nullptr, nullptr);
     TCLXX_CMD_NEW0(interp, "::std::vector<shared>::new", SharedVec);
     TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<shared>::new.shared", SharedVec);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<shared>::size", &SharedVec::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::vector<shared>::empty", &SharedVec::empty);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<shared>::set", &SharedVec::set_at);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<shared>::at",
-        stdcontainers::cmd_helpers::getter_obj_int_cmd<
-            SharedVec,
-            &SharedVec::at>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<shared>::list",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            SharedVec,
-            &SharedVec::to_list>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<shared>::reserve", &SharedVec::reserve);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::vector<shared>::clear", &SharedVec::clear);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<shared>::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<
-            SharedVec,
-            &SharedVec::pop_back_take>,
-        nullptr,
-        nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::size",
+                         tclxx::cmd::getter<&stdcontainers::shared_vector_size>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::empty",
+                         tclxx::cmd::getter<&stdcontainers::shared_vector_empty>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::set",
+                         tclxx::cmd::setter<&stdcontainers::shared_vector_set>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::at",
+                         tclxx::cmd::getter<&stdcontainers::shared_vector_at>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::list",
+                         tclxx::cmd::getter<&stdcontainers::shared_vector_to_list>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::reserve",
+                         tclxx::cmd::setter<&stdcontainers::shared_vector_reserve>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::clear",
+                         tclxx::cmd::setter<&stdcontainers::shared_vector_clear>, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, "::std::vector<shared>::pop",
+                         tclxx::cmd::setter<&stdcontainers::shared_vector_pop>, nullptr, nullptr);
     Tcl_CreateObjCommand(
         interp,
         "::std::vector<shared>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<SharedVec, &SharedVec::push_one>,
+        stdcontainers::cmd_helpers::variadic_push_cmd<SharedVec, &stdcontainers::shared_vector_push>,
         nullptr,
         nullptr);
 
@@ -264,17 +261,40 @@ std::string ObjType<std::vector<std::string>>::ToString(const std::vector<std::s
     return oss.str();
 }
 
-// VectorContainerShared toString
 template <>
-std::string ObjType<stdcontainers::VectorContainerShared>::ToString(const stdcontainers::VectorContainerShared& v) {
-    return to_tcl_string(v.to_list());
+std::string ObjType<stdcontainers::SharedVector>::ToString(const stdcontainers::SharedVector& v) {
+    return to_tcl_string(stdcontainers::shared_vector_to_list(&v));
 }
 
 template <>
-void ObjType<stdcontainers::VectorContainerShared>::Startup(stdcontainers::VectorContainerShared*) noexcept {}
+void ObjType<stdcontainers::SharedVector>::FreeInternalRep(Tcl_Obj* obj) noexcept {
+    auto* value = static_cast<stdcontainers::SharedVector*>(obj->internalRep.otherValuePtr);
+    if (value) {
+        stdcontainers::shared_vector_clear(value);
+        delete value;
+    }
+    obj->internalRep.otherValuePtr = nullptr;
+}
 
 template <>
-void ObjType<stdcontainers::VectorContainerShared>::Cleanup(stdcontainers::VectorContainerShared*) noexcept {}
+void ObjType<stdcontainers::SharedVector>::DupInternalRep(Tcl_Obj* src, Tcl_Obj* dup) noexcept {
+    try {
+        auto* source = static_cast<stdcontainers::SharedVector*>(src->internalRep.otherValuePtr);
+        auto copied = std::make_unique<stdcontainers::SharedVector>();
+        if (source) {
+            copied->reserve(source->size());
+            for (const Tcl_Obj& item : *source) {
+                copied->push_back(stdcontainers::shared_vector_clone(
+                    nullptr, const_cast<Tcl_Obj*>(&item)));
+            }
+        }
+        dup->internalRep.otherValuePtr = copied.release();
+        dup->typePtr = ObjType<stdcontainers::SharedVector>::GetType();
+    } catch (...) {
+        dup->internalRep.otherValuePtr = nullptr;
+        dup->typePtr = nullptr;
+    }
+}
 
 } // namespace tclxx
 

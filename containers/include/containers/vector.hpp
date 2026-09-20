@@ -128,168 +128,94 @@ void value_vector_clear(std::vector<T>* value) {
     value->clear();
 }
 
-/// VectorContainerShared — stores Tcl_Obj* using internal representation duplication.
-/// Each stored value has only internal rep (no string rep shared).
-/// Getting returns Tcl_DuplicateObj() copy to caller.
-/// Uses standard allocator (not TclAlloc).
-class VectorContainerShared {
-public:
-    using storage_type = std::vector<Tcl_Obj>;
+using SharedVector = std::vector<Tcl_Obj>;
 
-    VectorContainerShared() = default;
-
-    VectorContainerShared(ClientData, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) {
-        data_.reserve(static_cast<std::size_t>(objc - 1));
-        for (int i = 1; i < objc; ++i) {
-            push_one(interp, objv[i]);
+inline Tcl_Obj shared_vector_clone(Tcl_Interp* interp, Tcl_Obj* source) {
+    Tcl_Obj value{};
+    if (!source || !source->typePtr || !source->typePtr->dupIntRepProc) {
+        double number = 0.0;
+        if (Tcl_GetDoubleFromObj(interp, source, &number) != TCL_OK) {
+            throw std::runtime_error(
+                "Cannot store Tcl_Obj without internal representation which can't be cast into double");
         }
+        tclxx::ObjGuard guard(Tcl_NewDoubleObj(number));
+        value = *guard.get();
+    } else {
+        source->typePtr->dupIntRepProc(source, &value);
     }
+    value.refCount = 1;
+    value.bytes = nullptr;
+    value.length = 0;
+    return value;
+}
 
-    VectorContainerShared(const VectorContainerShared& other) {
-        data_.reserve(other.data_.size());
-        for (const Tcl_Obj& item : other.data_) {
-            data_.push_back(clone_heap_value(item));
-        }
+inline void shared_vector_destroy(Tcl_Obj& value) {
+    if (value.typePtr && value.typePtr->freeIntRepProc) {
+        value.typePtr->freeIntRepProc(&value);
     }
+}
 
-    VectorContainerShared& operator=(const VectorContainerShared& other) {
-        if (this == &other) {
-            return *this;
-        }
-        clear();
-        data_.reserve(other.data_.size());
-        for (const Tcl_Obj& item : other.data_) {
-            data_.push_back(clone_heap_value(item));
-        }
-        return *this;
+inline int shared_vector_size(const SharedVector* value) {
+    return static_cast<int>(value->size());
+}
+
+inline bool shared_vector_empty(const SharedVector* value) {
+    return value->empty();
+}
+
+inline void shared_vector_reserve(SharedVector* value, int capacity) {
+    if (capacity < 0) {
+        throw std::runtime_error("vector reserve requires non-negative capacity");
     }
+    value->reserve(static_cast<std::size_t>(capacity));
+}
 
-    VectorContainerShared(VectorContainerShared&& other) noexcept : data_(std::move(other.data_)) {
-        other.data_.clear();
+inline void shared_vector_push(SharedVector* value, Tcl_Obj* item) {
+    value->push_back(shared_vector_clone(nullptr, item));
+}
+
+inline Tcl_Obj* shared_vector_at(const SharedVector* value, int index) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("vector index out of range");
     }
+    return Tcl_DuplicateObj(const_cast<Tcl_Obj*>(&(*value)[static_cast<std::size_t>(index)]));
+}
 
-    VectorContainerShared& operator=(VectorContainerShared&& other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
-        data_ = std::move(other.data_);
-        other.data_.clear();
-        return *this;
+inline void shared_vector_set(SharedVector* value, int index, Tcl_Obj* item) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("vector index out of range");
     }
+    const std::size_t position = static_cast<std::size_t>(index);
+    Tcl_Obj replacement = shared_vector_clone(nullptr, item);
+    shared_vector_destroy((*value)[position]);
+    (*value)[position] = replacement;
+}
 
-    ~VectorContainerShared() {
-        clear();
+inline Tcl_Obj* shared_vector_pop(SharedVector* value) {
+    if (value->empty()) {
+        throw std::runtime_error("vector is empty");
     }
+    Tcl_Obj& item = value->back();
+    Tcl_Obj* result = Tcl_DuplicateObj(&item);
+    shared_vector_destroy(item);
+    value->pop_back();
+    return result;
+}
 
-    int size() const {
-        return static_cast<int>(data_.size());
+inline void shared_vector_clear(SharedVector* value) {
+    for (Tcl_Obj& item : *value) {
+        shared_vector_destroy(item);
     }
+    value->clear();
+}
 
-    bool empty() const {
-        return data_.empty();
+inline Tcl_Obj* shared_vector_to_list(const SharedVector* value) {
+    Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
+    for (const Tcl_Obj& item : *value) {
+        Tcl_ListObjAppendElement(nullptr, out, Tcl_DuplicateObj(const_cast<Tcl_Obj*>(&item)));
     }
-
-    void reserve(int capacity) {
-        if (capacity < 0) {
-            throw std::runtime_error("vector reserve requires non-negative capacity");
-        }
-        data_.reserve(static_cast<std::size_t>(capacity));
-    }
-
-    void push_one(Tcl_Interp* interp, Tcl_Obj* value) {
-        data_.push_back(clone_interp_value(interp, value));
-    }
-
-    Tcl_Obj* at(int index) const {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("vector index out of range");
-        }
-        Tcl_Obj* heap_obj = const_cast<Tcl_Obj*>(&data_[static_cast<std::size_t>(index)]);
-        return Tcl_DuplicateObj(heap_obj);
-    }
-
-    void set_at(Tcl_Interp* interp, int index, Tcl_Obj* value) {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("vector index out of range");
-        }
-        const std::size_t pos = static_cast<std::size_t>(index);
-        destroy_heap_value(data_[pos]);
-        data_[pos] = clone_interp_value(interp, value);
-    }
-
-    Tcl_Obj* pop_back_take() {
-        if (data_.empty()) {
-            throw std::runtime_error("vector is empty");
-        }
-        Tcl_Obj* heap_obj = &data_.back();
-        Tcl_Obj* value = Tcl_DuplicateObj(heap_obj);
-        destroy_heap_value(*heap_obj);
-        data_.pop_back();
-        return value;
-    }
-
-    void clear() {
-        for (Tcl_Obj& heap_obj : data_) {
-            destroy_heap_value(heap_obj);
-        }
-        data_.clear();
-    }
-
-    Tcl_Obj* to_list() const {
-        Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
-        for (const Tcl_Obj& heap_obj : data_) {
-            Tcl_Obj* dup = Tcl_DuplicateObj(const_cast<Tcl_Obj*>(&heap_obj));
-            Tcl_ListObjAppendElement(nullptr, out, dup);
-        }
-        return out;
-    }
-
-private:
-    storage_type data_;
-
-    static Tcl_Obj clone_interp_value(Tcl_Interp* interp, Tcl_Obj* interp_obj) {
-        Tcl_Obj heap_obj{};
-        if (!interp_obj || !interp_obj->typePtr || !interp_obj->typePtr->dupIntRepProc) {
-            double myDoubleValue;
-            if (Tcl_GetDoubleFromObj(interp, interp_obj, &myDoubleValue) != TCL_OK) {
-                throw std::runtime_error("Cannot store Tcl_Obj without internal representation which can't be cast into double");
-            }
-            tclxx::ObjGuard guard(Tcl_NewDoubleObj(myDoubleValue));
-            heap_obj = *(guard.get()); // copy string rep if no internal rep
-        } else {
-            interp_obj->typePtr->dupIntRepProc(interp_obj, &heap_obj);
-        }
-        heap_obj.refCount = 1;
-        // clear string on heap object since it can't be shared
-        if (heap_obj.bytes) {
-            heap_obj.bytes = nullptr; // prevent freeing string rep in destructor
-            heap_obj.length = 0;
-        }
-        return heap_obj;
-    }
-
-    static Tcl_Obj clone_heap_value(const Tcl_Obj& src) {
-        Tcl_Obj heap_obj{};
-        if (src.typePtr && src.typePtr->dupIntRepProc) {
-            src.typePtr->dupIntRepProc(const_cast<Tcl_Obj*>(&src), &heap_obj);
-        } else {
-            heap_obj = src; // copy string rep if no internal rep
-        }
-        heap_obj.refCount = 1;
-        // clear string on heap object since it can't be shared
-        if (heap_obj.bytes) {
-            heap_obj.bytes = nullptr; // prevent freeing string rep in destructor
-            heap_obj.length = 0;
-        }
-        return heap_obj;
-    }
-
-    static void destroy_heap_value(Tcl_Obj& heap_obj) {
-        if (heap_obj.typePtr && heap_obj.typePtr->freeIntRepProc) {
-            heap_obj.typePtr->freeIntRepProc(&heap_obj);
-        }
-    }
-};
+    return out;
+}
 
 int InitVectorPackage(Tcl_Interp* interp);
 

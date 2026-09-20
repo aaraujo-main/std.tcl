@@ -636,6 +636,17 @@ TEST_F(ContainersTest, VectorSharedEmpty) {
     EXPECT_TRUE(expect_result_true());
 }
 
+TEST_F(ContainersTest, VectorSharedCopyIsolation) {
+    EXPECT_TRUE(eval_ok("set vsh [::std::vector<shared>::new]"));
+    EXPECT_TRUE(eval_ok("::std::vector<shared>::push vsh 1 2"));
+    EXPECT_TRUE(eval_ok("set vsh_copy $vsh"));
+    EXPECT_TRUE(eval_ok("::std::vector<shared>::push vsh 3"));
+    EXPECT_TRUE(eval_ok(
+        "expr {[::std::vector<shared>::list $vsh] eq {1.0 2.0 3.0} && "
+        "[::std::vector<shared>::list $vsh_copy] eq {1.0 2.0}}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 }  // namespace
 
 GTEST_API_ int main(int argc, char** argv) {
