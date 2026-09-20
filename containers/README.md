@@ -35,17 +35,23 @@ package require std::containers
 
 - ::std::vector::*
 - ::std::list::*
+- ::std::map::*
+- ::std::queue::*
 - ::std::stack::*
 - ::std::set::*
 - ::std::unordered_map::*
+- ::std::unordered_set::*
 
 These retain prior command names:
 
 - vector: new size empty at set list reserve push pop clear
 - list: new size empty at list push pop clear
+- map: new size empty exists get keys dict put erase clear
+- queue: new size empty front list push pop clear
 - stack: new size empty top push pop clear
 - set: new size empty contains list insert erase clear
 - unordered_map: new size empty exists get keys reserve put erase clear
+- unordered_set: new size empty contains list insert erase clear
 
 ## Examples
 
@@ -60,9 +66,12 @@ puts [::std::vector::at $v 1]
 - include/containers/containers.hpp (umbrella include)
 - include/containers/vector.hpp
 - include/containers/list.hpp
+- include/containers/map.hpp
+- include/containers/queue.hpp
 - include/containers/stack.hpp
 - include/containers/set.hpp
 - include/containers/unordered_map.hpp
+- include/containers/unordered_set.hpp
 
 ## Benchmarks
 

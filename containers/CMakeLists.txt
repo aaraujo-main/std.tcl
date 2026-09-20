@@ -41,9 +41,12 @@ add_library(containers_core STATIC
     src/containers.cpp
     src/vector.cpp
     src/list.cpp
+    src/map.cpp
+    src/queue.cpp
     src/stack.cpp
     src/set.cpp
     src/unordered_map.cpp
+    src/unordered_set.cpp
 )
 
 target_compile_features(containers_core PUBLIC cxx_std_17)
@@ -57,9 +60,12 @@ add_library(stdcontainers MODULE
     src/containers.cpp
     src/vector.cpp
     src/list.cpp
+    src/map.cpp
+    src/queue.cpp
     src/stack.cpp
     src/set.cpp
     src/unordered_map.cpp
+    src/unordered_set.cpp
 )
 
 target_compile_features(stdcontainers PRIVATE cxx_std_17)
