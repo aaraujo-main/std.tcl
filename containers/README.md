@@ -64,17 +64,6 @@ puts [::std::vector::at $v 1]
 - include/containers/set.hpp
 - include/containers/unordered_map.hpp
 
-## Migration Notes
-
-- package require tclcontainers is removed.
-- package require std::containers is required.
-- load target is stdcontainers.so.
-- CMake targets renamed:
-  - containers_core
-  - containers
-  - containers_test
-  - containers_cpp_benchmark
-
 ## Benchmarks
 
 Files in benchmarks/:
