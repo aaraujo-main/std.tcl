@@ -63,106 +63,95 @@ int register_vector_commands(Tcl_Interp* interp) {
     return TCL_OK;
 }
 
-// Plain std::vector registrations for int, double, string
-int register_value_vector_int_commands(Tcl_Interp* interp) {
-    using IntVec = std::vector<int>;
+template <typename T>
+int register_value_vector_commands(Tcl_Interp* interp, const char* namespace_name) {
+    using ValueVec = std::vector<T>;
+    const std::string prefix = std::string(namespace_name) + "::";
 
-    Tcl_CreateNamespace(interp, "::std::vector<int>", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector<int>::new", IntVec);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<int>::new.shared", IntVec);
-    TCLXX_CMD_NEW_MAKE_SHARED(interp, "::std::vector<int>::make_shared", IntVec);
-    TCLXX_CMD_NEW_FROM_SHARED(interp, "::std::vector<int>::from_shared", IntVec);
-    TCLXX_CMD_GETTER(interp, "::std::vector<int>::size", &stdcontainers::value_vector_size<int>);
-    TCLXX_CMD_GETTER(interp, "::std::vector<int>::empty", &stdcontainers::value_vector_empty<int>);
-    TCLXX_CMD_SETTER(interp, "::std::vector<int>::set", &stdcontainers::value_vector_set<int>);
+    Tcl_CreateNamespace(interp, namespace_name, nullptr, nullptr);
+    Tcl_CreateObjCommand(interp, (prefix + "new").c_str(), tclxx::cmd::create<ValueVec>, nullptr, nullptr);
     Tcl_CreateObjCommand(
         interp,
-        "::std::vector<int>::at",
-        tclxx::cmd::getter<&stdcontainers::value_vector_at<int>>,
+        (prefix + "new.shared").c_str(),
+        tclxx::cmd::create_shared<ValueVec>,
         nullptr,
         nullptr);
-    TCLXX_CMD_SETTER(interp, "::std::vector<int>::reserve", &stdcontainers::value_vector_reserve<int>);
-    TCLXX_CMD_SETTER(interp, "::std::vector<int>::clear", &stdcontainers::value_vector_clear<int>);
+    if constexpr (std::is_same_v<T, int>) {
+        Tcl_CreateObjCommand(
+            interp,
+            (prefix + "make_shared").c_str(),
+            tclxx::cmd::make_shared<ValueVec>,
+            nullptr,
+            nullptr);
+        Tcl_CreateObjCommand(
+            interp,
+            (prefix + "from_shared").c_str(),
+            tclxx::cmd::from_shared<ValueVec>,
+            nullptr,
+            nullptr);
+    }
     Tcl_CreateObjCommand(
         interp,
-        "::std::vector<int>::pop",
-        tclxx::cmd::setter<&stdcontainers::value_vector_pop<int>>,
+        (prefix + "size").c_str(),
+        tclxx::cmd::getter<&stdcontainers::value_vector_size<T>>,
         nullptr,
         nullptr);
     Tcl_CreateObjCommand(
         interp,
-        "::std::vector<int>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<IntVec, &stdcontainers::value_vector_push<int>>,
+        (prefix + "empty").c_str(),
+        tclxx::cmd::getter<&stdcontainers::value_vector_empty<T>>,
+        nullptr,
+        nullptr);
+    Tcl_CreateObjCommand(
+        interp,
+        (prefix + "set").c_str(),
+        tclxx::cmd::setter<&stdcontainers::value_vector_set<T>>,
+        nullptr,
+        nullptr);
+    Tcl_CreateObjCommand(
+        interp,
+        (prefix + "at").c_str(),
+        tclxx::cmd::getter<&stdcontainers::value_vector_at<T>>,
+        nullptr,
+        nullptr);
+    Tcl_CreateObjCommand(
+        interp,
+        (prefix + "reserve").c_str(),
+        tclxx::cmd::setter<&stdcontainers::value_vector_reserve<T>>,
+        nullptr,
+        nullptr);
+    Tcl_CreateObjCommand(
+        interp,
+        (prefix + "clear").c_str(),
+        tclxx::cmd::setter<&stdcontainers::value_vector_clear<T>>,
+        nullptr,
+        nullptr);
+    Tcl_CreateObjCommand(
+        interp,
+        (prefix + "pop").c_str(),
+        tclxx::cmd::setter<&stdcontainers::value_vector_pop<T>>,
+        nullptr,
+        nullptr);
+    Tcl_CreateObjCommand(
+        interp,
+        (prefix + "push").c_str(),
+        stdcontainers::cmd_helpers::variadic_push_cmd<ValueVec, &stdcontainers::value_vector_push<T>>,
         nullptr,
         nullptr);
 
     return TCL_OK;
+}
+
+int register_value_vector_int_commands(Tcl_Interp* interp) {
+    return register_value_vector_commands<int>(interp, "::std::vector<int>");
 }
 
 int register_value_vector_double_commands(Tcl_Interp* interp) {
-    using DoubleVec = std::vector<double>;
-
-    Tcl_CreateNamespace(interp, "::std::vector<double>", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector<double>::new", DoubleVec);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<double>::new.shared", DoubleVec);
-    TCLXX_CMD_GETTER(interp, "::std::vector<double>::size", &stdcontainers::value_vector_size<double>);
-    TCLXX_CMD_GETTER(interp, "::std::vector<double>::empty", &stdcontainers::value_vector_empty<double>);
-    TCLXX_CMD_SETTER(interp, "::std::vector<double>::set", &stdcontainers::value_vector_set<double>);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<double>::at",
-        tclxx::cmd::getter<&stdcontainers::value_vector_at<double>>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER(interp, "::std::vector<double>::reserve", &stdcontainers::value_vector_reserve<double>);
-    TCLXX_CMD_SETTER(interp, "::std::vector<double>::clear", &stdcontainers::value_vector_clear<double>);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<double>::pop",
-        tclxx::cmd::setter<&stdcontainers::value_vector_pop<double>>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<double>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<DoubleVec, &stdcontainers::value_vector_push<double>>,
-        nullptr,
-        nullptr);
-
-    return TCL_OK;
+    return register_value_vector_commands<double>(interp, "::std::vector<double>");
 }
 
 int register_value_vector_string_commands(Tcl_Interp* interp) {
-    using StringVec = std::vector<std::string>;
-
-    Tcl_CreateNamespace(interp, "::std::vector<string>", nullptr, nullptr);
-    TCLXX_CMD_NEW0(interp, "::std::vector<string>::new", StringVec);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::vector<string>::new.shared", StringVec);
-    TCLXX_CMD_GETTER(interp, "::std::vector<string>::size", &stdcontainers::value_vector_size<std::string>);
-    TCLXX_CMD_GETTER(interp, "::std::vector<string>::empty", &stdcontainers::value_vector_empty<std::string>);
-    TCLXX_CMD_SETTER(interp, "::std::vector<string>::set", &stdcontainers::value_vector_set<std::string>);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<string>::at",
-        tclxx::cmd::getter<&stdcontainers::value_vector_at<std::string>>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER(interp, "::std::vector<string>::reserve", &stdcontainers::value_vector_reserve<std::string>);
-    TCLXX_CMD_SETTER(interp, "::std::vector<string>::clear", &stdcontainers::value_vector_clear<std::string>);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<string>::pop",
-        tclxx::cmd::setter<&stdcontainers::value_vector_pop<std::string>>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::vector<string>::push",
-        stdcontainers::cmd_helpers::variadic_push_cmd<StringVec, &stdcontainers::value_vector_push<std::string>>,
-        nullptr,
-        nullptr);
-
-    return TCL_OK;
+    return register_value_vector_commands<std::string>(interp, "::std::vector<string>");
 }
 
 int register_vector_shared_commands(Tcl_Interp* interp) {
