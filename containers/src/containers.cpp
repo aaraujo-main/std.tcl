@@ -15,6 +15,12 @@ int RegisterCommands(Tcl_Interp* interp) {
     if (InitListPackage(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+    if (InitMapPackage(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (InitQueuePackage(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
     if (InitStackPackage(interp) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -22,6 +28,9 @@ int RegisterCommands(Tcl_Interp* interp) {
         return TCL_ERROR;
     }
     if (InitUnorderedMapPackage(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (InitUnorderedSetPackage(interp) != TCL_OK) {
         return TCL_ERROR;
     }
 

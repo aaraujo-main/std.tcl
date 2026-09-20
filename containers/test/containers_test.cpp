@@ -320,6 +320,69 @@ TEST_F(ContainersTest, UnorderedMapMissingKey) {
     EXPECT_TRUE(eval_error("::std::unordered_map::get $m missing"));
 }
 
+TEST_F(ContainersTest, MapPutGetAndUpdate) {
+    EXPECT_TRUE(eval_ok("set m [::std::map::new]"));
+    EXPECT_TRUE(eval_ok("::std::map::put m key value1"));
+    EXPECT_TRUE(eval_ok("::std::map::put m key value2"));
+    EXPECT_TRUE(eval_ok("expr {[::std::map::get $m key] eq {value2} && [::std::map::size $m] == 1}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, MapKeysAreOrdered) {
+    EXPECT_TRUE(eval_ok("set m [::std::map::new]"));
+    EXPECT_TRUE(eval_ok("::std::map::put m c 3"));
+    EXPECT_TRUE(eval_ok("::std::map::put m a 1"));
+    EXPECT_TRUE(eval_ok("::std::map::put m b 2"));
+    EXPECT_TRUE(eval_ok("expr {[::std::map::keys $m] eq {a b c}}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, MapMissingKey) {
+    EXPECT_TRUE(eval_ok("set m [::std::map::new]"));
+    EXPECT_TRUE(eval_error("::std::map::get $m missing"));
+}
+
+TEST_F(ContainersTest, UnorderedSetInsertAndDuplicate) {
+    EXPECT_TRUE(eval_ok("set s [::std::unordered_set::new]"));
+    EXPECT_TRUE(eval_ok("set inserted [::std::unordered_set::insert s a b a]"));
+    EXPECT_TRUE(eval_ok("expr {$inserted eq {} && [::std::unordered_set::size $s] == 2}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, UnorderedSetContainsAndErase) {
+    EXPECT_TRUE(eval_ok("set s [::std::unordered_set::new]"));
+    EXPECT_TRUE(eval_ok("::std::unordered_set::insert s key"));
+    EXPECT_TRUE(eval_ok("expr {[::std::unordered_set::contains $s key]}"));
+    EXPECT_TRUE(expect_result_true());
+    EXPECT_TRUE(eval_ok("::std::unordered_set::erase s key"));
+    EXPECT_TRUE(eval_ok("expr {![::std::unordered_set::contains $s key]}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, QueueIsFifo) {
+    EXPECT_TRUE(eval_ok("set q [::std::queue::new]"));
+    EXPECT_TRUE(eval_ok("::std::queue::push q first second"));
+    EXPECT_TRUE(eval_ok("expr {[::std::queue::front $q] eq {first}}"));
+    EXPECT_TRUE(expect_result_true());
+    EXPECT_TRUE(eval_ok("set item [::std::queue::pop q]"));
+    EXPECT_TRUE(eval_ok("expr {$item eq {first} && [::std::queue::front $q] eq {second}}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, QueueToString) {
+    EXPECT_TRUE(eval_ok("set q [::std::queue::new]"));
+    EXPECT_TRUE(eval_ok("::std::queue::push q {first value} second"));
+    EXPECT_TRUE(eval_ok("set q_str [format %s $q]"));
+    EXPECT_TRUE(eval_ok("expr {$q_str eq {{first value} second}}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, QueueFrontEmpty) {
+    EXPECT_TRUE(eval_ok("set q [::std::queue::new]"));
+    EXPECT_TRUE(eval_error("::std::queue::front $q"));
+    EXPECT_TRUE(eval_error("::std::queue::pop q"));
+}
+
 class PerTypeInitTest : public ::testing::Test {
 protected:
     Tcl_Interp* interp;
