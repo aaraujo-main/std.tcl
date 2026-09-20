@@ -20,41 +20,19 @@ std::string to_tcl_string(Tcl_Obj* obj) {
 int register_list_commands(Tcl_Interp* interp) {
     Tcl_CreateNamespace(interp, "::std::list", nullptr, nullptr);
 
-    TCLXX_CMD_NEW0(interp, "::std::list::new", stdcontainers::ListContainer);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::list::new.shared", stdcontainers::ListContainer);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::list::size", &stdcontainers::ListContainer::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::list::empty", &stdcontainers::ListContainer::empty);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::list::at",
-        stdcontainers::cmd_helpers::getter_obj_int_cmd<
-            stdcontainers::ListContainer,
-            &stdcontainers::ListContainer::at>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::list::list",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::ListContainer,
-            &stdcontainers::ListContainer::to_list>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::list::clear", &stdcontainers::ListContainer::clear);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::list::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<
-            stdcontainers::ListContainer,
-            &stdcontainers::ListContainer::pop_back_take>,
-        nullptr,
-        nullptr);
+    TCLXX_CMD_NEW0(interp, "::std::list::new", stdcontainers::List);
+    TCLXX_CMD_GETTER(interp, "::std::list::size", &stdcontainers::list_size);
+    TCLXX_CMD_GETTER(interp, "::std::list::empty", &stdcontainers::list_empty);
+    TCLXX_CMD_GETTER(interp, "::std::list::at", &stdcontainers::list_at);
+    TCLXX_CMD_GETTER(interp, "::std::list::list", &stdcontainers::list_to_list);
+    TCLXX_CMD_SETTER(interp, "::std::list::clear", &stdcontainers::list_clear);
+    TCLXX_CMD_SETTER(interp, "::std::list::pop", &stdcontainers::list_pop);
     Tcl_CreateObjCommand(
         interp,
         "::std::list::push",
         stdcontainers::cmd_helpers::variadic_push_cmd<
-            stdcontainers::ListContainer,
-            &stdcontainers::ListContainer::push_back_one>,
+            stdcontainers::List,
+            &stdcontainers::list_push>,
         nullptr,
         nullptr);
 
@@ -66,15 +44,25 @@ int register_list_commands(Tcl_Interp* interp) {
 namespace tclxx {
 
 template <>
-std::string ObjType<stdcontainers::ListContainer>::ToString(const stdcontainers::ListContainer& v) {
-    return to_tcl_string(v.to_list());
+std::string ObjType<stdcontainers::List>::ToString(const stdcontainers::List& v) {
+    return to_tcl_string(stdcontainers::list_to_list(&v));
 }
 
 template <>
-void ObjType<stdcontainers::ListContainer>::Startup(stdcontainers::ListContainer*) noexcept {}
+void ObjType<stdcontainers::List>::Startup(stdcontainers::List* value) noexcept {
+    if (value) {
+        for (Tcl_Obj* item : *value) {
+            stdcontainers::detail::retain(item);
+        }
+    }
+}
 
 template <>
-void ObjType<stdcontainers::ListContainer>::Cleanup(stdcontainers::ListContainer*) noexcept {}
+void ObjType<stdcontainers::List>::Cleanup(stdcontainers::List* value) noexcept {
+    if (value) {
+        stdcontainers::list_clear(value);
+    }
+}
 
 } // namespace tclxx
 

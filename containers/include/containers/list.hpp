@@ -7,84 +7,52 @@
 
 namespace stdcontainers {
 
-class ListContainer {
-public:
-    using storage_type = std::list<Tcl_Obj*, TclAlloc<Tcl_Obj*>>;
+using List = std::list<Tcl_Obj*, TclAlloc<Tcl_Obj*>>;
 
-    ListContainer() = default;
+inline int list_size(const List* value) {
+    return static_cast<int>(value->size());
+}
 
-    ListContainer(const ListContainer& other) {
-        for (Tcl_Obj* item : other.data_) {
-            data_.push_back(detail::retain(item));
-        }
+inline bool list_empty(const List* value) {
+    return value->empty();
+}
+
+inline void list_push(List* value, Tcl_Obj* item) {
+    value->push_back(detail::retain(item));
+}
+
+inline Tcl_Obj* list_at(const List* value, int index) {
+    if (index < 0 || index >= static_cast<int>(value->size())) {
+        throw std::out_of_range("list index out of range");
     }
+    auto it = value->begin();
+    std::advance(it, index);
+    return *it;
+}
 
-    ListContainer& operator=(const ListContainer& other) {
-        if (this == &other) {
-            return *this;
-        }
-        clear();
-        for (Tcl_Obj* item : other.data_) {
-            data_.push_back(detail::retain(item));
-        }
-        return *this;
+inline Tcl_Obj* list_pop(List* value) {
+    if (value->empty()) {
+        throw std::runtime_error("list is empty");
     }
+    Tcl_Obj* item = value->back();
+    value->pop_back();
+    return item;
+}
 
-    ListContainer(ListContainer&&) noexcept = default;
-    ListContainer& operator=(ListContainer&&) noexcept = default;
-
-    ~ListContainer() {
-        clear();
+inline void list_clear(List* value) {
+    for (Tcl_Obj* item : *value) {
+        detail::release(item);
     }
+    value->clear();
+}
 
-    int size() const {
-        return static_cast<int>(data_.size());
+inline Tcl_Obj* list_to_list(const List* value) {
+    Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
+    for (Tcl_Obj* item : *value) {
+        Tcl_ListObjAppendElement(nullptr, out, item);
     }
-
-    bool empty() const {
-        return data_.empty();
-    }
-
-    void push_back_one(Tcl_Obj* value) {
-        data_.push_back(detail::retain(value));
-    }
-
-    Tcl_Obj* at(int index) const {
-        if (index < 0 || index >= static_cast<int>(data_.size())) {
-            throw std::out_of_range("list index out of range");
-        }
-        auto it = data_.begin();
-        std::advance(it, index);
-        return *it;
-    }
-
-    Tcl_Obj* pop_back_take() {
-        if (data_.empty()) {
-            throw std::runtime_error("list is empty");
-        }
-        Tcl_Obj* value = data_.back();
-        data_.pop_back();
-        return value;
-    }
-
-    void clear() {
-        for (Tcl_Obj* item : data_) {
-            detail::release(item);
-        }
-        data_.clear();
-    }
-
-    Tcl_Obj* to_list() const {
-        Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
-        for (Tcl_Obj* item : data_) {
-            Tcl_ListObjAppendElement(nullptr, out, item);
-        }
-        return out;
-    }
-
-private:
-    storage_type data_;
-};
+    return out;
+}
 
 int InitListPackage(Tcl_Interp* interp);
 

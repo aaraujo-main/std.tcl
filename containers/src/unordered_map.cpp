@@ -20,57 +20,17 @@ std::string to_tcl_string(Tcl_Obj* obj) {
 int register_unordered_map_commands(Tcl_Interp* interp) {
     Tcl_CreateNamespace(interp, "::std::unordered_map", nullptr, nullptr);
 
-    TCLXX_CMD_NEW0(interp, "::std::unordered_map::new", stdcontainers::UnorderedMapContainer);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::unordered_map::new.shared", stdcontainers::UnorderedMapContainer);
-    TCLXX_CMD_GETTER_METHOD(
-        interp,
-        "::std::unordered_map::size",
-        &stdcontainers::UnorderedMapContainer::size);
-    TCLXX_CMD_GETTER_METHOD(
-        interp,
-        "::std::unordered_map::empty",
-        &stdcontainers::UnorderedMapContainer::empty);
-    TCLXX_CMD_GETTER_METHOD(
-        interp,
-        "::std::unordered_map::exists",
-        &stdcontainers::UnorderedMapContainer::exists);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::unordered_map::get",
-        stdcontainers::cmd_helpers::getter_obj_key_cmd<
-            stdcontainers::UnorderedMapContainer,
-            &stdcontainers::UnorderedMapContainer::get>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::unordered_map::keys",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::UnorderedMapContainer,
-            &stdcontainers::UnorderedMapContainer::keys>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::unordered_map::dict",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::UnorderedMapContainer,
-            &stdcontainers::UnorderedMapContainer::to_dict>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER_METHOD(
-        interp,
-        "::std::unordered_map::reserve",
-        &stdcontainers::UnorderedMapContainer::reserve);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::unordered_map::put", &stdcontainers::UnorderedMapContainer::put);
-    TCLXX_CMD_SETTER_METHOD(
-        interp,
-        "::std::unordered_map::erase",
-        &stdcontainers::UnorderedMapContainer::erase_key);
-    TCLXX_CMD_SETTER_METHOD(
-        interp,
-        "::std::unordered_map::clear",
-        &stdcontainers::UnorderedMapContainer::clear);
+    TCLXX_CMD_NEW0(interp, "::std::unordered_map::new", stdcontainers::UnorderedMap);
+    TCLXX_CMD_GETTER(interp, "::std::unordered_map::size", &stdcontainers::unordered_map_size);
+    TCLXX_CMD_GETTER(interp, "::std::unordered_map::empty", &stdcontainers::unordered_map_empty);
+    TCLXX_CMD_GETTER(interp, "::std::unordered_map::exists", &stdcontainers::unordered_map_exists);
+    TCLXX_CMD_GETTER(interp, "::std::unordered_map::get", &stdcontainers::unordered_map_get);
+    TCLXX_CMD_GETTER(interp, "::std::unordered_map::keys", &stdcontainers::unordered_map_keys);
+    TCLXX_CMD_GETTER(interp, "::std::unordered_map::dict", &stdcontainers::unordered_map_to_dict);
+    TCLXX_CMD_SETTER(interp, "::std::unordered_map::reserve", &stdcontainers::unordered_map_reserve);
+    TCLXX_CMD_SETTER(interp, "::std::unordered_map::put", &stdcontainers::unordered_map_put);
+    TCLXX_CMD_SETTER(interp, "::std::unordered_map::erase", &stdcontainers::unordered_map_erase);
+    TCLXX_CMD_SETTER(interp, "::std::unordered_map::clear", &stdcontainers::unordered_map_clear);
 
     return TCL_OK;
 }
@@ -80,16 +40,27 @@ int register_unordered_map_commands(Tcl_Interp* interp) {
 namespace tclxx {
 
 template <>
-std::string ObjType<stdcontainers::UnorderedMapContainer>::ToString(
-    const stdcontainers::UnorderedMapContainer& v) {
-    return to_tcl_string(v.to_dict());
+std::string ObjType<stdcontainers::UnorderedMap>::ToString(
+    const stdcontainers::UnorderedMap& v) {
+    return to_tcl_string(stdcontainers::unordered_map_to_dict(&v));
 }
 
 template <>
-void ObjType<stdcontainers::UnorderedMapContainer>::Startup(stdcontainers::UnorderedMapContainer*) noexcept {}
+void ObjType<stdcontainers::UnorderedMap>::Startup(stdcontainers::UnorderedMap* value) noexcept {
+    if (value) {
+        for (const auto& kv : *value) {
+            stdcontainers::detail::retain(kv.first);
+            stdcontainers::detail::retain(kv.second);
+        }
+    }
+}
 
 template <>
-void ObjType<stdcontainers::UnorderedMapContainer>::Cleanup(stdcontainers::UnorderedMapContainer*) noexcept {}
+void ObjType<stdcontainers::UnorderedMap>::Cleanup(stdcontainers::UnorderedMap* value) noexcept {
+    if (value) {
+        stdcontainers::unordered_map_clear(value);
+    }
+}
 
 } // namespace tclxx
 

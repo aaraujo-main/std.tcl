@@ -20,27 +20,19 @@ std::string to_tcl_string(Tcl_Obj* obj) {
 int register_set_commands(Tcl_Interp* interp) {
     Tcl_CreateNamespace(interp, "::std::set", nullptr, nullptr);
 
-    TCLXX_CMD_NEW0(interp, "::std::set::new", stdcontainers::SetContainer);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::set::new.shared", stdcontainers::SetContainer);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::set::size", &stdcontainers::SetContainer::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::set::empty", &stdcontainers::SetContainer::empty);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::set::contains", &stdcontainers::SetContainer::contains);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::set::list",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::SetContainer,
-            &stdcontainers::SetContainer::to_list>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::set::erase", &stdcontainers::SetContainer::erase_key);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::set::clear", &stdcontainers::SetContainer::clear);
+    TCLXX_CMD_NEW0(interp, "::std::set::new", stdcontainers::Set);
+    TCLXX_CMD_GETTER(interp, "::std::set::size", &stdcontainers::set_size);
+    TCLXX_CMD_GETTER(interp, "::std::set::empty", &stdcontainers::set_empty);
+    TCLXX_CMD_GETTER(interp, "::std::set::contains", &stdcontainers::set_contains);
+    TCLXX_CMD_GETTER(interp, "::std::set::list", &stdcontainers::set_to_list);
+    TCLXX_CMD_SETTER(interp, "::std::set::erase", &stdcontainers::set_erase);
+    TCLXX_CMD_SETTER(interp, "::std::set::clear", &stdcontainers::set_clear);
     Tcl_CreateObjCommand(
         interp,
         "::std::set::insert",
         stdcontainers::cmd_helpers::variadic_set_insert_cmd<
-            stdcontainers::SetContainer,
-            &stdcontainers::SetContainer::insert_one>,
+            stdcontainers::Set,
+            &stdcontainers::set_insert>,
         nullptr,
         nullptr);
 
@@ -52,15 +44,25 @@ int register_set_commands(Tcl_Interp* interp) {
 namespace tclxx {
 
 template <>
-std::string ObjType<stdcontainers::SetContainer>::ToString(const stdcontainers::SetContainer& v) {
-    return to_tcl_string(v.to_list());
+std::string ObjType<stdcontainers::Set>::ToString(const stdcontainers::Set& v) {
+    return to_tcl_string(stdcontainers::set_to_list(&v));
 }
 
 template <>
-void ObjType<stdcontainers::SetContainer>::Startup(stdcontainers::SetContainer*) noexcept {}
+void ObjType<stdcontainers::Set>::Startup(stdcontainers::Set* value) noexcept {
+    if (value) {
+        for (Tcl_Obj* key : *value) {
+            stdcontainers::detail::retain(key);
+        }
+    }
+}
 
 template <>
-void ObjType<stdcontainers::SetContainer>::Cleanup(stdcontainers::SetContainer*) noexcept {}
+void ObjType<stdcontainers::Set>::Cleanup(stdcontainers::Set* value) noexcept {
+    if (value) {
+        stdcontainers::set_clear(value);
+    }
+}
 
 } // namespace tclxx
 

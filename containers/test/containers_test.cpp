@@ -120,6 +120,11 @@ TEST_F(ContainersTest, ListCreate) {
     EXPECT_TRUE(eval_ok("set l [::std::list::new]"));
 }
 
+TEST_F(ContainersTest, ListSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::list::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 TEST_F(ContainersTest, ListPushVariadic) {
     EXPECT_TRUE(eval_ok("set l [::std::list::new]"));
     EXPECT_TRUE(eval_ok("::std::list::push l x y z"));
@@ -158,6 +163,11 @@ TEST_F(ContainersTest, ListToString) {
 
 TEST_F(ContainersTest, StackCreate) {
     EXPECT_TRUE(eval_ok("set s [::std::stack::new]"));
+}
+
+TEST_F(ContainersTest, StackSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::stack::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
 }
 
 TEST_F(ContainersTest, StackPushVariadic) {
@@ -211,6 +221,11 @@ TEST_F(ContainersTest, SetCreate) {
     EXPECT_TRUE(eval_ok("set st [::std::set::new]"));
 }
 
+TEST_F(ContainersTest, SetSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::set::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 TEST_F(ContainersTest, SetInsertVariadic) {
     EXPECT_TRUE(eval_ok("set st [::std::set::new]"));
     EXPECT_TRUE(eval_ok("set inserted [::std::set::insert st a {b c} a]"));
@@ -243,6 +258,11 @@ TEST_F(ContainersTest, SetToString) {
 
 TEST_F(ContainersTest, UnorderedMapCreate) {
     EXPECT_TRUE(eval_ok("set m [::std::unordered_map::new]"));
+}
+
+TEST_F(ContainersTest, UnorderedMapSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::unordered_map::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
 }
 
 TEST_F(ContainersTest, UnorderedMapReserve) {

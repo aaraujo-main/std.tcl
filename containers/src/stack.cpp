@@ -20,41 +20,19 @@ std::string to_tcl_string(Tcl_Obj* obj) {
 int register_stack_commands(Tcl_Interp* interp) {
     Tcl_CreateNamespace(interp, "::std::stack", nullptr, nullptr);
 
-    TCLXX_CMD_NEW0(interp, "::std::stack::new", stdcontainers::StackContainer);
-    TCLXX_CMD_NEW0_SHARED(interp, "::std::stack::new.shared", stdcontainers::StackContainer);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::stack::size", &stdcontainers::StackContainer::size);
-    TCLXX_CMD_GETTER_METHOD(interp, "::std::stack::empty", &stdcontainers::StackContainer::empty);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::stack::top",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::StackContainer,
-            &stdcontainers::StackContainer::top>,
-        nullptr,
-        nullptr);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::stack::list",
-        stdcontainers::cmd_helpers::getter_obj0_cmd<
-            stdcontainers::StackContainer,
-            &stdcontainers::StackContainer::to_list>,
-        nullptr,
-        nullptr);
-    TCLXX_CMD_SETTER_METHOD(interp, "::std::stack::clear", &stdcontainers::StackContainer::clear);
-    Tcl_CreateObjCommand(
-        interp,
-        "::std::stack::pop",
-        stdcontainers::cmd_helpers::setter_obj0_cmd<
-            stdcontainers::StackContainer,
-            &stdcontainers::StackContainer::pop_take>,
-        nullptr,
-        nullptr);
+    TCLXX_CMD_NEW0(interp, "::std::stack::new", stdcontainers::Stack);
+    TCLXX_CMD_GETTER(interp, "::std::stack::size", &stdcontainers::stack_size);
+    TCLXX_CMD_GETTER(interp, "::std::stack::empty", &stdcontainers::stack_empty);
+    TCLXX_CMD_GETTER(interp, "::std::stack::top", &stdcontainers::stack_top);
+    TCLXX_CMD_GETTER(interp, "::std::stack::list", &stdcontainers::stack_to_list);
+    TCLXX_CMD_SETTER(interp, "::std::stack::clear", &stdcontainers::stack_clear);
+    TCLXX_CMD_SETTER(interp, "::std::stack::pop", &stdcontainers::stack_pop);
     Tcl_CreateObjCommand(
         interp,
         "::std::stack::push",
         stdcontainers::cmd_helpers::variadic_push_cmd<
-            stdcontainers::StackContainer,
-            &stdcontainers::StackContainer::push_one>,
+            stdcontainers::Stack,
+            &stdcontainers::stack_push>,
         nullptr,
         nullptr);
 
@@ -66,15 +44,25 @@ int register_stack_commands(Tcl_Interp* interp) {
 namespace tclxx {
 
 template <>
-std::string ObjType<stdcontainers::StackContainer>::ToString(const stdcontainers::StackContainer& v) {
-    return to_tcl_string(v.to_list());
+std::string ObjType<stdcontainers::Stack>::ToString(const stdcontainers::Stack& v) {
+    return to_tcl_string(stdcontainers::stack_to_list(&v));
 }
 
 template <>
-void ObjType<stdcontainers::StackContainer>::Startup(stdcontainers::StackContainer*) noexcept {}
+void ObjType<stdcontainers::Stack>::Startup(stdcontainers::Stack* value) noexcept {
+    if (value) {
+        for (Tcl_Obj* item : *value) {
+            stdcontainers::detail::retain(item);
+        }
+    }
+}
 
 template <>
-void ObjType<stdcontainers::StackContainer>::Cleanup(stdcontainers::StackContainer*) noexcept {}
+void ObjType<stdcontainers::Stack>::Cleanup(stdcontainers::Stack* value) noexcept {
+    if (value) {
+        stdcontainers::stack_clear(value);
+    }
+}
 
 } // namespace tclxx
 

@@ -6,95 +6,53 @@
 
 namespace stdcontainers {
 
-class SetContainer {
-public:
-    using storage_type = std::set<Tcl_Obj*, detail::TclObjStringLess, TclAlloc<Tcl_Obj*>>;
+using Set = std::set<Tcl_Obj*, detail::TclObjStringLess, TclAlloc<Tcl_Obj*>>;
 
-    SetContainer() = default;
+inline int set_size(const Set* value) {
+    return static_cast<int>(value->size());
+}
 
-    SetContainer(const SetContainer& other) {
-        for (Tcl_Obj* key : other.data_) {
-            data_.insert(detail::retain(key));
-        }
+inline bool set_empty(const Set* value) {
+    return value->empty();
+}
+
+inline bool set_contains(const Set* value, Tcl_Obj* key) {
+    return value->find(key) != value->end();
+}
+
+inline bool set_insert(Set* value, Tcl_Obj* key) {
+    Tcl_Obj* held = detail::retain(key);
+    auto [it, inserted] = value->insert(held);
+    if (!inserted) {
+        detail::release(held);
     }
+    return inserted;
+}
 
-    SetContainer& operator=(const SetContainer& other) {
-        if (this == &other) {
-            return *this;
-        }
-        clear();
-        for (Tcl_Obj* key : other.data_) {
-            data_.insert(detail::retain(key));
-        }
-        return *this;
+inline bool set_erase(Set* value, Tcl_Obj* key) {
+    auto it = value->find(key);
+    if (it == value->end()) {
+        return false;
     }
+    detail::release(*it);
+    value->erase(it);
+    return true;
+}
 
-    SetContainer(SetContainer&&) noexcept = default;
-    SetContainer& operator=(SetContainer&&) noexcept = default;
-
-    ~SetContainer() {
-        clear();
+inline void set_clear(Set* value) {
+    for (Tcl_Obj* key : *value) {
+        detail::release(key);
     }
+    value->clear();
+}
 
-    int size() const {
-        return static_cast<int>(data_.size());
+inline Tcl_Obj* set_to_list(const Set* value) {
+    Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
+    for (Tcl_Obj* key : *value) {
+        Tcl_ListObjAppendElement(nullptr, out, key);
     }
-
-    bool empty() const {
-        return data_.empty();
-    }
-
-    bool contains(Tcl_Obj* key) const {
-        return data_.find(key) != data_.end();
-    }
-
-    bool insert_one(Tcl_Obj* key) {
-        Tcl_Obj* held = detail::retain(key);
-        auto [it, inserted] = data_.insert(held);
-        if (!inserted) {
-            detail::release(held);
-        }
-        return inserted;
-    }
-
-    int insert_many(int count, Tcl_Obj* const* keys) {
-        int inserted_count = 0;
-        for (int i = 0; i < count; ++i) {
-            if (insert_one(keys[i])) {
-                ++inserted_count;
-            }
-        }
-        return inserted_count;
-    }
-
-    bool erase_key(Tcl_Obj* key) {
-        auto it = data_.find(key);
-        if (it == data_.end()) {
-            return false;
-        }
-        detail::release(*it);
-        data_.erase(it);
-        return true;
-    }
-
-    void clear() {
-        for (Tcl_Obj* key : data_) {
-            detail::release(key);
-        }
-        data_.clear();
-    }
-
-    Tcl_Obj* to_list() const {
-        Tcl_Obj* out = Tcl_NewListObj(0, nullptr);
-        for (Tcl_Obj* key : data_) {
-            Tcl_ListObjAppendElement(nullptr, out, key);
-        }
-        return out;
-    }
-
-private:
-    storage_type data_;
-};
+    return out;
+}
 
 int InitSetPackage(Tcl_Interp* interp);
 
