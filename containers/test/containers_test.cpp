@@ -120,6 +120,11 @@ TEST_F(ContainersTest, ListCreate) {
     EXPECT_TRUE(eval_ok("set l [::std::list::new]"));
 }
 
+TEST_F(ContainersTest, ListSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::list::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 TEST_F(ContainersTest, ListPushVariadic) {
     EXPECT_TRUE(eval_ok("set l [::std::list::new]"));
     EXPECT_TRUE(eval_ok("::std::list::push l x y z"));
@@ -158,6 +163,11 @@ TEST_F(ContainersTest, ListToString) {
 
 TEST_F(ContainersTest, StackCreate) {
     EXPECT_TRUE(eval_ok("set s [::std::stack::new]"));
+}
+
+TEST_F(ContainersTest, StackSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::stack::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
 }
 
 TEST_F(ContainersTest, StackPushVariadic) {
@@ -211,6 +221,11 @@ TEST_F(ContainersTest, SetCreate) {
     EXPECT_TRUE(eval_ok("set st [::std::set::new]"));
 }
 
+TEST_F(ContainersTest, SetSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::set::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 TEST_F(ContainersTest, SetInsertVariadic) {
     EXPECT_TRUE(eval_ok("set st [::std::set::new]"));
     EXPECT_TRUE(eval_ok("set inserted [::std::set::insert st a {b c} a]"));
@@ -243,6 +258,11 @@ TEST_F(ContainersTest, SetToString) {
 
 TEST_F(ContainersTest, UnorderedMapCreate) {
     EXPECT_TRUE(eval_ok("set m [::std::unordered_map::new]"));
+}
+
+TEST_F(ContainersTest, UnorderedMapSharedCreateRemoved) {
+    EXPECT_TRUE(eval_ok("expr {[llength [info commands ::std::unordered_map::new.shared]] == 0}"));
+    EXPECT_TRUE(expect_result_true());
 }
 
 TEST_F(ContainersTest, UnorderedMapReserve) {
@@ -375,6 +395,25 @@ TEST_F(ContainersTest, VectorIntAt) {
     EXPECT_TRUE(expect_result_true());
 }
 
+TEST_F(ContainersTest, VectorIntSet) {
+    EXPECT_TRUE(eval_ok("set vi [::std::vector<int>::new]"));
+    EXPECT_TRUE(eval_ok("::std::vector<int>::push vi 100 200 300"));
+    EXPECT_TRUE(eval_ok("::std::vector<int>::set vi 1 250"));
+    EXPECT_TRUE(eval_ok("expr {[::std::vector<int>::at $vi 1] == 250}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, VectorIntSharedConstructors) {
+    EXPECT_TRUE(eval_ok("set vi [::std::vector<int>::new]"));
+    EXPECT_TRUE(eval_ok("::std::vector<int>::push vi 1 2"));
+    EXPECT_TRUE(eval_ok("::std::vector<int>::make_shared vi"));
+    EXPECT_TRUE(eval_ok("set vi2 $vi"));
+    EXPECT_TRUE(eval_ok("::std::vector<int>::from_shared vi2"));
+    EXPECT_TRUE(eval_ok("set vi3 [::std::vector<int>::new.shared]"));
+    EXPECT_TRUE(eval_ok("expr {[::std::vector<int>::size $vi] == 2 && [::std::vector<int>::size $vi2] == 2 && [::std::vector<int>::size $vi3] == 0}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 TEST_F(ContainersTest, VectorIntPop) {
     EXPECT_TRUE(eval_ok("set vi [::std::vector<int>::new]"));
     EXPECT_TRUE(eval_ok("::std::vector<int>::push vi 5 10 15"));
@@ -441,6 +480,14 @@ TEST_F(ContainersTest, VectorDoubleAt) {
     EXPECT_TRUE(expect_result_true());
 }
 
+TEST_F(ContainersTest, VectorDoubleSet) {
+    EXPECT_TRUE(eval_ok("set vd [::std::vector<double>::new]"));
+    EXPECT_TRUE(eval_ok("::std::vector<double>::push vd 1.5 2.5 3.5"));
+    EXPECT_TRUE(eval_ok("::std::vector<double>::set vd 1 4.5"));
+    EXPECT_TRUE(eval_ok("expr {[::std::vector<double>::at $vd 1] == 4.5}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
 TEST_F(ContainersTest, VectorDoublePop) {
     EXPECT_TRUE(eval_ok("set vd [::std::vector<double>::new]"));
     EXPECT_TRUE(eval_ok("::std::vector<double>::push vd 1.1 2.2 3.3"));
@@ -493,6 +540,14 @@ TEST_F(ContainersTest, VectorStringAt) {
     EXPECT_TRUE(eval_ok("set vs [::std::vector<string>::new]"));
     EXPECT_TRUE(eval_ok("::std::vector<string>::push vs apple banana cherry"));
     EXPECT_TRUE(eval_ok("expr {[::std::vector<string>::at $vs 1] eq \"banana\"}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, VectorStringSet) {
+    EXPECT_TRUE(eval_ok("set vs [::std::vector<string>::new]"));
+    EXPECT_TRUE(eval_ok("::std::vector<string>::push vs apple banana cherry"));
+    EXPECT_TRUE(eval_ok("::std::vector<string>::set vs 1 changed"));
+    EXPECT_TRUE(eval_ok("expr {[::std::vector<string>::at $vs 1] eq \"changed\"}"));
     EXPECT_TRUE(expect_result_true());
 }
 
@@ -598,6 +653,17 @@ TEST_F(ContainersTest, VectorSharedToString) {
 TEST_F(ContainersTest, VectorSharedEmpty) {
     EXPECT_TRUE(eval_ok("set vsh [::std::vector<shared>::new]"));
     EXPECT_TRUE(eval_ok("expr {[::std::vector<shared>::empty $vsh]}"));
+    EXPECT_TRUE(expect_result_true());
+}
+
+TEST_F(ContainersTest, VectorSharedCopyIsolation) {
+    EXPECT_TRUE(eval_ok("set vsh [::std::vector<shared>::new]"));
+    EXPECT_TRUE(eval_ok("::std::vector<shared>::push vsh 1 2"));
+    EXPECT_TRUE(eval_ok("set vsh_copy $vsh"));
+    EXPECT_TRUE(eval_ok("::std::vector<shared>::push vsh 3"));
+    EXPECT_TRUE(eval_ok(
+        "expr {[::std::vector<shared>::list $vsh] eq {1.0 2.0 3.0} && "
+        "[::std::vector<shared>::list $vsh_copy] eq {1.0 2.0}}"));
     EXPECT_TRUE(expect_result_true());
 }
 

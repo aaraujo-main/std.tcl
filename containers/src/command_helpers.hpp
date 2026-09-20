@@ -36,16 +36,24 @@ int variadic_push_cmd(ClientData, Tcl_Interp* interp, int objc, Tcl_Obj* const o
     
     try {
         Container* c = tclxx::obj_cast::to<Container*>(interp, this_obj);
-        using traits = tclxx::cmd::detail::member_function_traits<decltype(Method)>;
         for (int i = 2; i < objc; ++i) {
-            if constexpr (traits::arity == 1) {
-                using Arg = std::tuple_element_t<0, typename traits::args>;
-                using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
-                (c->*Method)(tclxx::obj_cast::to<RawArg>(interp, objv[i]));
-            } else if constexpr (traits::arity == 2) {
+            if constexpr (std::is_member_function_pointer_v<decltype(Method)>) {
+                using traits = tclxx::cmd::detail::member_function_traits<decltype(Method)>;
+                if constexpr (traits::arity == 1) {
+                    using Arg = std::tuple_element_t<0, typename traits::args>;
+                    using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
+                    (c->*Method)(tclxx::obj_cast::to<RawArg>(interp, objv[i]));
+                } else if constexpr (traits::arity == 2) {
+                    using Arg = std::tuple_element_t<1, typename traits::args>;
+                    using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
+                    (c->*Method)(interp, tclxx::obj_cast::to<RawArg>(interp, objv[i]));
+                }
+            } else {
+                using traits = tclxx::cmd::detail::function_traits<decltype(Method)>;
+                static_assert(traits::arity == 2, "variadic push function must accept container and value");
                 using Arg = std::tuple_element_t<1, typename traits::args>;
                 using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
-                (c->*Method)(interp, tclxx::obj_cast::to<RawArg>(interp, objv[i]));
+                Method(c, tclxx::obj_cast::to<RawArg>(interp, objv[i]));
             }
         }
         Tcl_InvalidateStringRep(this_obj);
@@ -75,17 +83,27 @@ int variadic_set_insert_cmd(ClientData, Tcl_Interp* interp, int objc, Tcl_Obj* c
     }
 
     try {
-        auto* c = tclxx::obj_cast::to<Container*>(interp, this_obj);
-        using traits = tclxx::cmd::detail::member_function_traits<decltype(Method)>;
+            auto* c = tclxx::obj_cast::to<Container*>(interp, this_obj);
+            using traits = std::conditional_t<
+                std::is_member_function_pointer_v<decltype(Method)>,
+                tclxx::cmd::detail::member_function_traits<decltype(Method)>,
+                tclxx::cmd::detail::function_traits<decltype(Method)>>;
         for (int i = 2; i < objc; ++i) {
-            if constexpr (traits::arity == 1) {
-                using Arg = std::tuple_element_t<0, typename traits::args>;
-                using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
-                (c->*Method)(tclxx::obj_cast::to<RawArg>(interp, objv[i]));
-            } else if constexpr (traits::arity == 2) {
-                using Arg = std::tuple_element_t<1, typename traits::args>;
-                using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
-                (c->*Method)(interp, tclxx::obj_cast::to<RawArg>(interp, objv[i]));
+                if constexpr (std::is_member_function_pointer_v<decltype(Method)>) {
+                    if constexpr (traits::arity == 1) {
+                        using Arg = std::tuple_element_t<0, typename traits::args>;
+                        using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
+                        (c->*Method)(tclxx::obj_cast::to<RawArg>(interp, objv[i]));
+                    } else if constexpr (traits::arity == 2) {
+                        using Arg = std::tuple_element_t<1, typename traits::args>;
+                        using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
+                        (c->*Method)(tclxx::obj_cast::to<RawArg>(interp, objv[i]));
+                    }
+                } else {
+                    static_assert(traits::arity == 2, "variadic set function must accept container and key");
+                    using Arg = std::tuple_element_t<1, typename traits::args>;
+                    using RawArg = std::remove_cv_t<std::remove_reference_t<Arg>>;
+                    Method(c, tclxx::obj_cast::to<RawArg>(interp, objv[i]));
             }
         }
         Tcl_InvalidateStringRep(this_obj);

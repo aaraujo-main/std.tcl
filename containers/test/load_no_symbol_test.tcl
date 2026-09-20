@@ -29,11 +29,4 @@ if {[::std::vector::at $v 1] ne "b"} {
     exit 1
 }
 
-set v2 [::std::vector::new.shared]
-::std::vector::push v2 c d
-if {[::std::vector::at $v2 1] ne "d"} {
-    puts stderr "shared vector roundtrip failed"
-    exit 1
-}
-puts "v2: $v2"
 exit 0
