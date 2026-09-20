@@ -10,7 +10,9 @@
 #include "tclxx.hpp"
 
 namespace stdcontainers {
-
+// ********************************************
+// TclVector: retained Tcl_Obj* storage.
+// ********************************************
 using TclVector = std::vector<Tcl_Obj*, TclAlloc<Tcl_Obj*>>;
 
 inline int vector_size(const TclVector* value) {
@@ -29,6 +31,7 @@ inline void vector_reserve(TclVector* value, int capacity) {
 }
 
 inline void vector_push(TclVector* value, Tcl_Obj* item) {
+    // Vector retains item; vector_clear releases each stored object.
     value->push_back(detail::retain(item));
 }
 
@@ -74,6 +77,9 @@ inline Tcl_Obj* vector_to_list(const TclVector* value) {
     return out;
 }
 
+// ********************************************
+// std::vector<T>: ordinary C++ value storage.
+// ********************************************
 template <typename T>
 int value_vector_size(const std::vector<T>* value) {
     return static_cast<int>(value->size());
@@ -128,8 +134,12 @@ void value_vector_clear(std::vector<T>* value) {
     value->clear();
 }
 
+// ********************************************
+// SharedVector: deep-copied Tcl_Obj storage.
+// ********************************************
 using SharedVector = std::vector<Tcl_Obj>;
 
+// Internal helpers for SharedVector ownership.
 inline Tcl_Obj shared_vector_clone(Tcl_Interp* interp, Tcl_Obj* source) {
     Tcl_Obj value{};
     if (!source || !source->typePtr || !source->typePtr->dupIntRepProc) {
@@ -155,6 +165,7 @@ inline void shared_vector_destroy(Tcl_Obj& value) {
     }
 }
 
+// SharedVector operations.
 inline int shared_vector_size(const SharedVector* value) {
     return static_cast<int>(value->size());
 }
@@ -171,6 +182,7 @@ inline void shared_vector_reserve(SharedVector* value, int capacity) {
 }
 
 inline void shared_vector_push(SharedVector* value, Tcl_Obj* item) {
+    // Vector stores an independent Tcl_Obj internal representation.
     value->push_back(shared_vector_clone(nullptr, item));
 }
 
